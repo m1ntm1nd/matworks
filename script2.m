@@ -2,23 +2,12 @@ hold on %графики все в одном окне
 isd = 10
 rad = isd / 3
 
-%plot(pgon1)
-
 xhex=[0]
 yhex=[0] 
-%pgon1 = nsidedpoly(6, 'Center', [rad/2, sqrt(3)/2 * rad], 'Sidelength', rad)
-
-%pgon2 = nsidedpoly(6, 'Center', [rad/2, -sqrt(3)/2 * rad], 'Sidelength', rad)
-%pgon3 = nsidedpoly(6, 'Center', [-rad, 0], 'Sidelength', rad)
-%pg = plot(pgon1)
-%pg.FaceColor = 'none';
-
-
 
 mas = addTowersRec(xhex, yhex, 2, isd, rad)
 disp('xplt');
 disp(mas);
-%pgon1 = nsidedpoly(6, 'Center', [rad/2, sqrt(3)/2 * rad], 'Sidelength', rad)
 
 function  mas = addTowersRec(xplt, yplt, numTiers, isd, rad)
     x=[1 1/2 -1/2 -1 -1/2 1/2] * isd
