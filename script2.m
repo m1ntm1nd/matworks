@@ -15,7 +15,7 @@ yhex=[0]
 
 
 
-mas = addTowersRec(xhex, yhex, 2, 10, rad)
+mas = addTowersRec(xhex, yhex, 2, isd, rad)
 disp('xplt');
 disp(mas);
 %pgon1 = nsidedpoly(6, 'Center', [rad/2, sqrt(3)/2 * rad], 'Sidelength', rad)
