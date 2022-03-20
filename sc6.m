@@ -5,7 +5,7 @@ rad = isd / 3
 xhex=[0]
 yhex=[0] 
 
-[towers_X, towers_Y] = addTowersRec2(2, isd, rad)
+[towers_X, towers_Y] = addTowersRec2(1, isd, rad)
 
 
 
@@ -111,8 +111,8 @@ function [gx, gy, r_x, r_y] = distributeUsers(xc,yc,rad, numPolygon, towerDist)
     for i = 1:length(gx)
         dist = sqrt((gx(i)-v_x(t))^2 + (gy(i)-v_y(t))^2)
         if dist < towerDist
-            gx(i) = xc + 1/(i*10)
-            gy(i) = yc + 1/(i*10)
+            gx(i) = xc + 1/(i*randi(10))
+            gy(i) = yc + 1/(i*randi(10))
         end
     end
             
