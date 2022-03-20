@@ -9,10 +9,6 @@ yhex=[0]
 
 
 
-%plot(ggg,gggg2,'r*')
-%[users_X,users_Y] = gg(ggg,gggg2,rad, towers_X, towers_Y)
-%plot(users_X, users_Y,'bl.')
-
 function [towers_coord_X,towers_coord_Y] = addTowersRec2(numTiers, isd, rad)
     towers_coord_X = [0]
     towers_coord_Y = [0]    
