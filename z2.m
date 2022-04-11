@@ -1,10 +1,11 @@
 hold on
+
 isd = 500;
 rad = isd / 3;
-numUePerCell = 10;
+numUePerCell = 100;
 minDist = 50;
 numTiers = 1;
-noise_power = 1;
+noise_power = 10;
 acceptableErrorOfLinearCoordinate = 2;
 xhex = [0];
 yhex = [0]; 
@@ -13,7 +14,7 @@ yhex = [0];
 
 figure(2)
 
-for c = noise_power:5
+for c = 1:noise_power
     noise_power = c
     [err_users_X, err_users_Y] = calcFangError(towers_X, towers_Y, users_X, users_Y, noise_power);
     [vector_T, vector_CDF] = genCDF(err_users_X, err_users_Y, acceptableErrorOfLinearCoordinate);
@@ -21,7 +22,27 @@ for c = noise_power:5
     hold on
 end
 
+figure(3)
+errorsVector = [];
 
+lenVec = 0:0.1:noise_power
+for c = lenVec
+    noise_power = c
+    [err_users_X, err_users_Y] = calcFangError(towers_X, towers_Y, users_X, users_Y, noise_power);
+    [meanError] = calcMeanError(err_users_X, err_users_Y);
+    errorsVector = horzcat(errorsVector, meanError);
+end
+plot(lenVec, errorsVector);
+
+
+function [meanError] = calcMeanError(err_users_X, err_users_Y)
+    vectorErrors = [];
+    for c = 1:length(err_users_X)
+        vectorErrors = horzcat(vectorErrors, sqrt((err_users_X(c))^2 + (err_users_Y(c))^2));
+    end
+    
+    meanError = sum(vectorErrors)/length(vectorErrors);
+end
 
 %compare real coordinates with those calculated by the fang algorithm
 %disp(err_users_X);
@@ -218,7 +239,3 @@ function [mas_X, mas_Y ] = check_unique_coords(towers_coord_X, towers_coord_Y, n
         end
     end
 end
-
-
-
-
