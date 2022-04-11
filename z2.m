@@ -4,20 +4,27 @@ rad = isd / 3;
 numUePerCell = 10;
 minDist = 50;
 numTiers = 1;
-noise_power = 0.05;
-acceptableErrorOfLinearCoordinate = 5;
+noise_power = 1;
+acceptableErrorOfLinearCoordinate = 2;
 xhex = [0];
 yhex = [0]; 
 
 [towers_X, towers_Y, users_X, users_Y] = addTowersRec2(numTiers, isd, rad, minDist, numUePerCell);
-[err_users_X, err_users_Y] = calcFangError(towers_X, towers_Y, users_X, users_Y, noise_power);
-[vector_T, vector_CDF] = genCDF(err_users_X, err_users_Y, acceptableErrorOfLinearCoordinate);
 
 figure(2)
-plot(vector_T, vector_CDF)
+
+for c = noise_power:5
+    noise_power = c
+    [err_users_X, err_users_Y] = calcFangError(towers_X, towers_Y, users_X, users_Y, noise_power);
+    [vector_T, vector_CDF] = genCDF(err_users_X, err_users_Y, acceptableErrorOfLinearCoordinate);
+    plot(vector_T, vector_CDF);
+    hold on
+end
+
+
 
 %compare real coordinates with those calculated by the fang algorithm
-disp(err_users_X);
+%disp(err_users_X);
 %disp(err_users_Y);
 
 
@@ -27,11 +34,11 @@ function [vector_T, vector_CDF] = genCDF(err_users_X, err_users_Y, acceptableErr
     vector_CDF = [0];
     
     for c = 1:length(err_users_X)
-        vector_S = horzcat(vector_S, ((2*err_users_X(c))^2 + (2*err_users_Y(c))^2));
+        vector_S = horzcat(vector_S, sqrt((err_users_X(c))^2 + (err_users_Y(c))^2));
     end
-    max_S = acceptableErrorOfLinearCoordinate ^ 2;
-    vector_T = 0:max_S;
-    for max_S_Curr = 1:max_S
+    max_err = acceptableErrorOfLinearCoordinate ^ 2;
+    vector_T = 0:0.1:max_err;
+    for max_S_Curr = 0.1:0.1:max_err
         cnt = 0;
         for i = 1:length(vector_S)
             if vector_S(i) <= max_S_Curr
@@ -58,8 +65,8 @@ end
 
 %calculating distance differens (TDoA*c)
 function [distDiff1, distDiff2] = calcTDoA(towers_coord_X, towers_coord_Y, user_coord_x, user_coord_y, noise_power)
-    distDiff1 = abs(sqrt((user_coord_x - towers_coord_X(2))^2 + (user_coord_y - towers_coord_Y(2))^2) - sqrt((user_coord_x - towers_coord_X(1))^2 + (user_coord_y - towers_coord_Y(1))^2));
-    distDiff2 = abs(sqrt((user_coord_x - towers_coord_X(3))^2 + (user_coord_y - towers_coord_Y(3))^2) - sqrt((user_coord_x - towers_coord_X(1))^2 + (user_coord_y - towers_coord_Y(1))^2));
+    distDiff1 = (sqrt((user_coord_x - towers_coord_X(2))^2 + (user_coord_y - towers_coord_Y(2))^2) - sqrt((user_coord_x - towers_coord_X(1))^2 + (user_coord_y - towers_coord_Y(1))^2));
+    distDiff2 = (sqrt((user_coord_x - towers_coord_X(3))^2 + (user_coord_y - towers_coord_Y(3))^2) - sqrt((user_coord_x - towers_coord_X(1))^2 + (user_coord_y - towers_coord_Y(1))^2));
     
     %add white gaussian noise *2 (on transmitter and receiver)
     distDiff1 = awgn(distDiff1, 2/noise_power);
@@ -120,19 +127,19 @@ function [towers_coord_X,towers_coord_Y, users_X, users_Y] = addTowersRec2(numTi
         
         if DISTR_USERS_FLAG == 0
             [user_X1,user_Y1, v_x1, v_y1] = distributeUsers(center_1_X, center_1_Y, rad, 1, minDist, numUePerCell);
-            [user_X2,user_Y2, v_x2, v_y2] = distributeUsers(center_2_X, center_2_Y, rad, 2, minDist, numUePerCell);    
-            [user_X3,user_Y3, v_x3, v_y3] = distributeUsers(center_3_X, center_3_Y, rad, 3, minDist, numUePerCell);    
+            %[user_X2,user_Y2, v_x2, v_y2] = distributeUsers(center_2_X, center_2_Y, rad, 2, minDist, numUePerCell);    
+            %[user_X3,user_Y3, v_x3, v_y3] = distributeUsers(center_3_X, center_3_Y, rad, 3, minDist, numUePerCell);    
        
         
         
-            users_X = horzcat(users_X, user_X1, user_X2, user_X3);
-            users_Y = horzcat(users_Y, user_Y1, user_Y2, user_Y3);
+            users_X = horzcat(users_X, user_X1)%, user_X2, user_X3);
+            users_Y = horzcat(users_Y, user_Y1)%, user_Y2, user_Y3);
             DISTR_USERS_FLAG = 1;
         end
 
         plot(v_x1, v_y1,'g.');
-        plot(v_x2, v_y2,'g.');
-        plot(v_x3, v_y3,'g.');
+        %plot(v_x2, v_y2,'g.');
+        %plot(v_x3, v_y3,'g.');
 
 
         %plot(user_X1, user_Y1,'bl.');
@@ -211,3 +218,7 @@ function [mas_X, mas_Y ] = check_unique_coords(towers_coord_X, towers_coord_Y, n
         end
     end
 end
+
+
+
+
