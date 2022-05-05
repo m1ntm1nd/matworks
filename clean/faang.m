@@ -4,15 +4,200 @@ rad = isd / 3;
 numUePerCell = 100;
 minDist = 50;
 numTiers = 1;
-noise_power = 0.9;
-acceptableErrorOfLinearCoordinate = 0.5;
+noise_power = 5;
+acceptableErrorOfLinearCoordinate = 10;
 xhex = [0];
-yhex = [0]; 
+yhex = [0];
+basis_towers_coord_X = [0, 500, 250];
+basis_towers_coord_Y = [0, 0, 433.0127];
 
 [towers_X, towers_Y, users_X, users_Y] = addTowersRec2(numTiers, isd, rad, minDist, numUePerCell);
 towersMatrix = [towers_X(:), towers_Y(:)];
 usersMatrix = [users_X(:), users_Y(:), zeros(length(users_X), 3)];
 [usersMatrix] = addNearestSt(usersMatrix, towersMatrix);
+[usersMatrixPolar] = ToPolar(usersMatrix);
+[towersMatrixPolar] = ToPolar(towersMatrix);
+towersMatrixPolar(1, 2) = 0;
+
+
+detectedMatrix = zeros(length(usersMatrix), 2);
+len = length(usersMatrixPolar);
+
+for i = 1:len
+    [detectedMatrix(i, 1), detectedMatrix(i, 2)] = calcPosRotated(towersMatrixPolar, usersMatrixPolar, usersMatrix, i, noise_power);
+    scatter(detectedMatrix(i, 1), detectedMatrix(i, 2));
+end
+figure(2)
+
+for c = 0:10:50
+    noise_power = c;
+    for i = 1:len
+        [detectedMatrix(i, 1), detectedMatrix(i, 2)] = calcPosRotated(towersMatrixPolar, usersMatrixPolar, usersMatrix, i, noise_power);
+    end
+    [err_users_X, err_users_Y] = calcFangError(usersMatrix, detectedMatrix);
+    [vector_T, vector_CDF] = genCDF(err_users_X, err_users_Y, acceptableErrorOfLinearCoordinate);
+    plot(vector_T, vector_CDF);
+    hold on
+end
+
+figure(3)
+errorsVector = [];
+
+lenVec = 0:10:50
+for c = lenVec
+    noise_power = c
+    for i = 1:len
+        [detectedMatrix(i, 1), detectedMatrix(i, 2)] = calcPosRotated(towersMatrixPolar, usersMatrixPolar, usersMatrix, i, noise_power);
+    end
+    [err_users_X, err_users_Y] = calcFangError(usersMatrix, detectedMatrix);
+    [meanError] = calcMeanError(err_users_X, err_users_Y);
+    errorsVector = horzcat(errorsVector, meanError);
+end
+plot(lenVec, errorsVector);
+
+
+function [meanError] = calcMeanError(err_users_X, err_users_Y)
+    vectorErrors = [];
+    for c = 1:length(err_users_X)
+        vectorErrors = horzcat(vectorErrors, sqrt((err_users_X(c))^2 + (err_users_Y(c))^2));
+    end
+    
+    meanError = sum(vectorErrors)/length(vectorErrors);
+end
+
+%calculating distance differens (TDoA*c)
+%i = userIndex
+%towers_coord_X, towers_coord_Y - mas of 3 coords of stations
+function [detected_x, detected_y] = calcPosRotated(towersMatrixPolar, usersMatrixPolar, usersMatrix, i, noise_power)
+    detected_x = 0;
+    detected_y = 0;
+    theta = pi/6;
+    towers_coord_X = [0, 500, 250];
+    while theta <= pi
+        if (usersMatrixPolar(i, 2) <= theta) || (usersMatrixPolar(i, 2) >= 2*pi - theta)
+            if usersMatrixPolar(i, 2) <= pi
+                rotate = -(theta-pi/6);
+                towers_coord_Y = [0, 0, -433.0127];
+            else
+                rotate = (theta-pi/6);
+                towers_coord_Y = [0, 0, 433.0127];
+            end
+                %take coords of closest towers in polar system
+                %towers_coord_R = towersMatrixPolar(usersMatrix(i,3:5), 1);
+                %towers_coord_Phi = towersMatrixPolar(usersMatrix(i,3:5), 2);
+                %towers_coord_Phi = towers_coord_Phi + rotate;
+                
+                %its fake coord rotated by angle
+                [user_coord_x, user_coord_y] = ToDecartesDot(usersMatrixPolar(i, 1), usersMatrixPolar(i, 2)+rotate);
+                
+                %calc towers in Decartes
+                %towers_coord_X = zeros(3, 1);
+                %towers_coord_Y = zeros(3, 1);
+                
+                
+                %for i = 1:3
+                %    [towers_coord_X(i), towers_coord_Y(i)] = ToDecartesDot(towers_coord_R(i), towers_coord_Phi(i));
+                %end
+                
+                distDiff1 = (sqrt((user_coord_x - towers_coord_X(2))^2 + (user_coord_y - towers_coord_Y(2))^2) - sqrt((user_coord_x - towers_coord_X(1))^2 + (user_coord_y - towers_coord_Y(1))^2));
+                distDiff2 = (sqrt((user_coord_x - towers_coord_X(3))^2 + (user_coord_y - towers_coord_Y(3))^2) - sqrt((user_coord_x - towers_coord_X(1))^2 + (user_coord_y - towers_coord_Y(1))^2));
+                
+                %randn - gaussian distr coefficients w/ disp = 1
+                distDiff1 = distDiff1 + noise_power * randn(1,1);
+                distDiff2 = distDiff2 + noise_power * randn(1,1);
+                
+                [fake_detected_x, fake_detected_y] = calcPosition(distDiff1, distDiff2, towers_coord_X, towers_coord_Y);
+                [fake_r, fake_phi] = ToPolarDot(fake_detected_x, fake_detected_y);
+                [detected_x, detected_y] = ToDecartesDot(fake_r, fake_phi-rotate);
+        end
+        theta = theta + pi/6;
+    end    
+end
+
+function [xc, yc] = calcPosition(distDiff1, distDiff2, towers_coord_X, towers_coord_Y)
+    g = (distDiff2*(towers_coord_X(2)/distDiff1) - towers_coord_X(3))/towers_coord_Y(3);
+    h = ((((towers_coord_X(3))^2 + (towers_coord_Y(3))^2)) - distDiff2^2 + distDiff2 * distDiff1*(1-(towers_coord_X(2)/distDiff1)^2)) / (2*towers_coord_Y(3));
+    
+    d = -(1-(towers_coord_X(2)/distDiff1)^2 + g^2);
+    e = towers_coord_X(2)*(1-(towers_coord_X(2)/distDiff1)^2)-(2*g*h);
+    f = ((distDiff1^2) / 4)*(1-(towers_coord_X(2)/distDiff1)^2)^2 - h^2;
+    
+    xc = (-e-sqrt(e^2 - 4*d*f))/(2*d);
+    yc = g * xc + h;
+end
+
+function [x, y] = ToDecartesDot(r, phi)
+    x = r * cos(phi);
+    y = r * sin(phi);
+end
+
+function [r, phi] = ToPolarDot(x, y)
+    phi = atan(y/x);
+    r = sqrt(x^2 + y^2);
+    if x>0 && y<=0
+        phi = phi + 2 * pi;
+    end
+    if x<0
+        phi = phi + pi;
+    end
+end
+
+
+function [usersMatrixPolar] = ToPolar(usersMatrix)
+    n = length(usersMatrix);
+    usersMatrixPolar = zeros(n, 2);
+    for i = 1:n
+        x = usersMatrix(i, 1);
+        y = usersMatrix(i, 2);
+        phi = atan(y/x);
+        rad = sqrt(x^2 + y^2);
+        if x>0 && y<=0
+            phi = phi + 2* pi;
+        end
+        if x<0
+            phi = phi + pi;
+        end
+        usersMatrixPolar(i, 1) = rad;
+        usersMatrixPolar(i, 2) = phi;
+    end
+end
+
+function [vector_T, vector_CDF] = genCDF(err_users_X, err_users_Y, acceptableErrorOfLinearCoordinate)
+    %vector_S = acceptableErrorOfLinearCoordinate ** 2;
+    vector_S = [];
+    vector_CDF = [0];
+    
+    for c = 1:length(err_users_X)
+        vector_S = horzcat(vector_S, sqrt((err_users_X(c))^2 + (err_users_Y(c))^2));
+    end
+    max_err = acceptableErrorOfLinearCoordinate ^ 2;
+    vector_T = 0:0.1:max_err;
+    for max_S_Curr = 0.1:0.1:max_err
+        cnt = 0;
+        for i = 1:length(vector_S)
+            if vector_S(i) <= max_S_Curr
+                cnt= cnt+1;
+            end
+        end
+        vector_CDF = horzcat(vector_CDF, cnt/length(err_users_X));       
+    end
+    
+end
+
+function [err_users_X, err_users_Y] = calcFangError(usersMatrix, detectedMatrix)
+    err_users_X = [];
+    err_users_Y = [];
+    
+    len = length(usersMatrix);
+    for i = 1:len
+        if detectedMatrix(i, 1) ~= 0
+            err_users_X = horzcat(err_users_X, abs(usersMatrix(i, 1) - detectedMatrix(i, 1)));
+            err_users_Y = horzcat(err_users_Y, abs(usersMatrix(i, 2) - detectedMatrix(i, 2)));
+        end
+    end
+end
+
+
 
 function [usersMatrix] = addNearestSt(usersMatrix, towersMatrix)
     for i = 1:length(usersMatrix)
@@ -77,7 +262,7 @@ function [towers_coord_X,towers_coord_Y, users_X, users_Y] = addTowersRec2(numTi
         plot(v_x3, v_y3,'g.');
 
 
-        plot(user_X1, user_Y1,'bl.');
+        %plot(user_X1, user_Y1,'bl.');
         plot([pgon1, pgon2, pgon3]);
     end
     plot(users_X, users_Y,'bl.');
