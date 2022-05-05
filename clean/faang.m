@@ -27,9 +27,12 @@ for i = 1:len
     [detectedMatrix(i, 1), detectedMatrix(i, 2)] = calcPosRotated(towersMatrixPolar, usersMatrixPolar, usersMatrix, i, noise_power);
     scatter(detectedMatrix(i, 1), detectedMatrix(i, 2));
 end
-figure(2)
+xlabel('X axis');
+ylabel('Y axis');
 
-for c = 0:10:50
+figure(2);
+
+for c = noise_power:10:50
     noise_power = c;
     for i = 1:len
         [detectedMatrix(i, 1), detectedMatrix(i, 2)] = calcPosRotated(towersMatrixPolar, usersMatrixPolar, usersMatrix, i, noise_power);
