@@ -27,8 +27,6 @@ for i = 1:len
     [detectedMatrix(i, 1), detectedMatrix(i, 2)] = calcPosRotated(towersMatrixPolar, usersMatrixPolar, usersMatrix, i, noise_power);
     scatter(detectedMatrix(i, 1), detectedMatrix(i, 2));
 end
-xlabel('X axis');
-ylabel('Y axis');
 
 figure(2);
 
@@ -42,6 +40,7 @@ for c = noise_power:10:50
     plot(vector_T, vector_CDF);
     hold on
 end
+
 
 figure(3)
 errorsVector = [];
@@ -58,7 +57,8 @@ for c = lenVec
 end
 plot(lenVec, errorsVector);
 
-
+xlabel('Mean Error (m^2)');
+ylabel('Noise power (m or dB)');
 function [meanError] = calcMeanError(err_users_X, err_users_Y)
     vectorErrors = [];
     for c = 1:length(err_users_X)
@@ -72,6 +72,7 @@ end
 %i = userIndex
 %towers_coord_X, towers_coord_Y - mas of 3 coords of stations
 function [detected_x, detected_y] = calcPosRotated(towersMatrixPolar, usersMatrixPolar, usersMatrix, i, noise_power)
+    maxd = 500/2;
     detected_x = 0;
     detected_y = 0;
     theta = pi/6;
@@ -112,6 +113,14 @@ function [detected_x, detected_y] = calcPosRotated(towersMatrixPolar, usersMatri
                 [fake_detected_x, fake_detected_y] = calcPosition(distDiff1, distDiff2, towers_coord_X, towers_coord_Y);
                 [fake_r, fake_phi] = ToPolarDot(fake_detected_x, fake_detected_y);
                 [detected_x, detected_y] = ToDecartesDot(fake_r, fake_phi-rotate);
+                
+                
+                distFalsy = sqrt(detected_x^2 + detected_y^2);
+                if distFalsy > maxd
+                    detected_x = usersMatrix(i,1) + noise_power * randn(1,1);
+                    detected_y = usersMatrix(i,2) + noise_power * randn(1,1);
+                end
+                
         end
         theta = theta + pi/6;
     end    
