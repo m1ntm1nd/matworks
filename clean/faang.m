@@ -40,7 +40,8 @@ for c = noise_power:10:50
     plot(vector_T, vector_CDF);
     hold on
 end
-
+ylabel('CDF');
+xlabel('Acceptable Error (m^2)');
 
 figure(3)
 errorsVector = [];
@@ -57,8 +58,7 @@ for c = lenVec
 end
 plot(lenVec, errorsVector);
 
-xlabel('Mean Error (m^2)');
-ylabel('Noise power (m or dB)');
+
 function [meanError] = calcMeanError(err_users_X, err_users_Y)
     vectorErrors = [];
     for c = 1:length(err_users_X)
