@@ -19,23 +19,54 @@ userssMatrix = [users_X(:), users_Y(:), zeros(length(users_X), 3)];
 [h] = calcH(usersMatrix, towersMatrix, N);
 [g] = calcG(usersMatrix, towersMatrix, N);
 
-[nt] = calcPos(g,h)
-
-
-plot(usersMatrix(1, 1), usersMatrix(1, 2), 'r.');
-scatter(nt(1, 1), nt(2, 1));
-
-[ng] = calcPosSimp(usersMatrix, towersMatrix)
+for userIndex = 1:length(usersMatrix)
+    [userPos] = calcPosOptimised(usersMatrix, towersMatrix, userIndex, N);
+    scatter(userPos(1, 1), userPos(2, 1));
+end
 
 
 
+[ng] = calcPosSimp(usersMatrix, towersMatrix);
+
+
+function [pos] = calcPosOptimised(usersMatrix, towersMatrix, userIndex, N)
+    user_X = usersMatrix(userIndex, 1);
+    user_Y = usersMatrix(userIndex, 2);
+    
+    hMatrix = zeros(3,1);
+    gMatrix = zeros(3,3);
+    towersx = [];
+    towersy = [];
+    
+    %finding distDiff
+    for i = 1:N
+       towersx = horzcat(towersx, towersMatrix(usersMatrix(userIndex, i+2), 1));
+       towersy = horzcat(towersy, towersMatrix(usersMatrix(userIndex, i+2), 2));
+    end
+    
+    [distDiff] = calcTDoA(towersx, towersy, user_X, user_Y, N);
+
+    %calc H and G matrix
+    for i = 2:N
+       hMatrix(i-1,1) = distDiff(i-1)^2 + towersx(1)^2 + towersy(1)^2 - towersx(i)^2 - towersy(i)^2;
+    end
+
+    for i = 2:N
+       gMatrix(i-1,1) = towersx(i) - towersx(1);
+       gMatrix(i-1,2) = towersy(i) - towersy(1);
+       gMatrix(i-1,3) = distDiff(i-1); 
+    end
+
+
+    gg = inv(((-gMatrix)' * (-gMatrix)));
+    pos = gg * (-gMatrix)' * (hMatrix./2);
+end
 
 function [hMatrix] = calcH(usersMatrix, towersMatrix, N)
     user_X = usersMatrix(1, 1);
     user_Y = usersMatrix(1, 2);
     
     hMatrix = zeros(3,1);
-    dd = [];
     towersx = [];
     towersy = [];
     
@@ -56,7 +87,6 @@ function [gMatrix] = calcG(usersMatrix, towersMatrix, N)
     user_Y = usersMatrix(1, 2);
     
     gMatrix = zeros(3,3);
-    dd = [];
     towersx = [];
     towersy = [];
     
@@ -129,7 +159,7 @@ function [distDiff] = calcTDoA(towers_coord_X, towers_coord_Y, user_coord_x, use
     distDiff=[];
     
     for i = 2:N
-        distDiff = horzcat(distDiff, abs(sqrt((user_coord_x - towers_coord_X(i))^2 + (user_coord_y - towers_coord_Y(i))^2) - sqrt((user_coord_x - towers_coord_X(1))^2 + (user_coord_y - towers_coord_Y(1))^2)));
+        distDiff = horzcat(distDiff, abs(sqrt((user_coord_x - towers_coord_X(i))^2 + (user_coord_y - towers_coord_Y(i))^2) - sqrt((user_coord_x - towers_coord_X(1))^2 + (user_coord_y - towers_coord_Y(1))^2)) + 10 * randn(1,1));
     end
 end
 
