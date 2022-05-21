@@ -4,7 +4,7 @@ rad = isd / 3;
 numUePerCell = 100;
 minDist = 50;
 numTiers = 1;
-noise_power = 0.9;
+noise_power = 5;
 acceptableErrorOfLinearCoordinate = 0.5;
 xhex = [0];
 yhex = [0]; 
@@ -16,20 +16,15 @@ userssMatrix = [users_X(:), users_Y(:), zeros(length(users_X), 3)];
 [usersMatrix] = addNearestSt(userssMatrix, towersMatrix, N);
 
 
-[h] = calcH(usersMatrix, towersMatrix, N);
-[g] = calcG(usersMatrix, towersMatrix, N);
 
 for userIndex = 1:length(usersMatrix)
-    [userPos] = calcPosOptimised(usersMatrix, towersMatrix, userIndex, N);
+    [userPos] = calcPosOptimised(usersMatrix, towersMatrix, userIndex, N, noise_power);
     scatter(userPos(1, 1), userPos(2, 1));
 end
 
 
 
-[ng] = calcPosSimp(usersMatrix, towersMatrix);
-
-
-function [pos] = calcPosOptimised(usersMatrix, towersMatrix, userIndex, N)
+function [pos] = calcPosOptimised(usersMatrix, towersMatrix, userIndex, N, nP)
     user_X = usersMatrix(userIndex, 1);
     user_Y = usersMatrix(userIndex, 2);
     
@@ -44,7 +39,7 @@ function [pos] = calcPosOptimised(usersMatrix, towersMatrix, userIndex, N)
        towersy = horzcat(towersy, towersMatrix(usersMatrix(userIndex, i+2), 2));
     end
     
-    [distDiff] = calcTDoA(towersx, towersy, user_X, user_Y, N);
+    [distDiff] = calcTDoA(towersx, towersy, user_X, user_Y, N, nP);
 
     %calc H and G matrix
     for i = 2:N
@@ -57,10 +52,12 @@ function [pos] = calcPosOptimised(usersMatrix, towersMatrix, userIndex, N)
        gMatrix(i-1,3) = distDiff(i-1); 
     end
 
-
-    gg = inv(((-gMatrix)' * (-gMatrix)));
-    pos = gg * (-gMatrix)' * (hMatrix./2);
+    [qMatrix] = calcQ(N, nP);
+    gg = inv(((-gMatrix)' * inv(qMatrix) * (-gMatrix)));
+    pos = gg * (-gMatrix)' * inv(qMatrix) * (hMatrix./2);
+    
 end
+
 
 function [hMatrix] = calcH(usersMatrix, towersMatrix, N)
     user_X = usersMatrix(1, 1);
@@ -81,6 +78,20 @@ function [hMatrix] = calcH(usersMatrix, towersMatrix, N)
        hMatrix(i-1,1) = distDiff(i-1)^2 + towersx(1)^2 + towersy(1)^2 - towersx(i)^2 - towersy(i)^2;
     end
 end
+
+function [qMatrix] = calcQ( N, nP)
+    qMatrix = ones(N-1,N-1);
+    
+    BS_1_noise = nP * randn(1, 1);
+    
+    qMatrix = qMatrix * BS_1_noise ^ 2;
+    
+    for i = 1:N-1
+        BS_I_noise = nP * randn(1, 1);
+        qMatrix(i, i) = qMatrix(i, i) + BS_I_noise ^ 2;
+    end
+end
+
 
 function [gMatrix] = calcG(usersMatrix, towersMatrix, N)
     user_X = usersMatrix(1, 1);
@@ -155,11 +166,11 @@ function [toa] = calcToa(towers_coord_X, towers_coord_Y, user_coord_x, user_coor
     toa = abs(sqrt((user_coord_x - towers_coord_X(1))^2 + (user_coord_y - towers_coord_Y(1))^2));
 end
 
-function [distDiff] = calcTDoA(towers_coord_X, towers_coord_Y, user_coord_x, user_coord_y, N)
+function [distDiff] = calcTDoA(towers_coord_X, towers_coord_Y, user_coord_x, user_coord_y, N, nP)
     distDiff=[];
     
     for i = 2:N
-        distDiff = horzcat(distDiff, abs(sqrt((user_coord_x - towers_coord_X(i))^2 + (user_coord_y - towers_coord_Y(i))^2) - sqrt((user_coord_x - towers_coord_X(1))^2 + (user_coord_y - towers_coord_Y(1))^2)) + 10 * randn(1,1));
+        distDiff = horzcat(distDiff, abs(sqrt((user_coord_x - towers_coord_X(i))^2 + (user_coord_y - towers_coord_Y(i))^2) - sqrt((user_coord_x - towers_coord_X(1))^2 + (user_coord_y - towers_coord_Y(1))^2)) + nP * randn(1,1));
     end
 end
 
