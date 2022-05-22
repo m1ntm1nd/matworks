@@ -4,11 +4,11 @@ rad = isd / 3;
 numUePerCell = 100;
 minDist = 50;
 numTiers = 1;
-noise_power = 5;
-acceptableErrorOfLinearCoordinate = 0.5;
+noise_power = 0.01;
+acceptableErrorOfLinearCoordinate = 50;
 xhex = [0];
 yhex = [0]; 
-N = 7;
+N = 4;
 
 [towers_X, towers_Y, users_X, users_Y] = addTowersRec2(numTiers, isd, rad, minDist, numUePerCell);
 towersMatrix = [towers_X(:), towers_Y(:)];
@@ -21,6 +21,56 @@ for userIndex = 1:length(usersMatrix)
     [userPos] = calcPosOptimised(usersMatrix, towersMatrix, userIndex, N, noise_power);
     scatter(userPos(1, 1), userPos(2, 1));
 end
+
+figure(2);
+detectedMatrix = zeros(length(usersMatrix), 2);
+for c = noise_power
+    noise_power = c;
+    
+    all_errors_R = zeros(1, length(usersMatrix));
+    
+    for userIndex = 1:length(usersMatrix)
+        [userPos] = calcPosOptimised(usersMatrix, towersMatrix, userIndex, N, noise_power);
+        
+        detectedMatrix(userIndex, 1) = userPos(1, 1);
+        detectedMatrix(userIndex, 2) = userPos(2, 1);
+        
+        all_errors_R(userIndex) = calcCoordError(usersMatrix, detectedMatrix, userIndex);
+        
+    end
+    
+    [vector_T, vector_CDF] = genCDF(all_errors_R, acceptableErrorOfLinearCoordinate);
+    plot(vector_T, vector_CDF);
+    hold on
+end
+ylabel('CDF');
+xlabel('Acceptable Error (m)');
+legend('sigm = 10m','sigm = 20m', 'sigm = 30m', 'sigm = 40m', 'sigm = 50m');
+
+
+function [vector_T, vector_CDF] = genCDF(all_errors_R, acceptableErrorOfLinearCoordinate)
+    %vector_S = acceptableErrorOfLinearCoordinate ** 2;
+    vector_S = all_errors_R;
+    vector_CDF = [0];
+    
+    max_err = acceptableErrorOfLinearCoordinate;
+    vector_T = 0:0.1:max_err;
+    for max_S_Curr = 0.1:0.1:max_err
+        cnt = 0;
+        for i = 1:length(vector_S)
+            if vector_S(i) <= max_S_Curr
+                cnt= cnt+1;
+            end
+        end
+        vector_CDF = horzcat(vector_CDF, cnt/length(all_errors_R));       
+    end
+    
+end
+
+function [err_R] = calcCoordError(usersMatrix, detectedMatrix, userIndex)
+    err_R = sqrt((usersMatrix(userIndex, 1) - detectedMatrix(userIndex, 1))^2 + (usersMatrix(userIndex, 2) - detectedMatrix(userIndex, 2))^2);
+end
+
 
 
 
