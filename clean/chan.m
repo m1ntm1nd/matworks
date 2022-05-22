@@ -4,7 +4,7 @@ rad = isd / 3;
 numUePerCell = 100;
 minDist = 50;
 numTiers = 1;
-noise_power = 0.01;
+noise_power = 10;
 acceptableErrorOfLinearCoordinate = 50;
 xhex = [0];
 yhex = [0]; 
@@ -24,7 +24,7 @@ end
 
 figure(2);
 detectedMatrix = zeros(length(usersMatrix), 2);
-for c = noise_power
+for c = noise_power:10:50
     noise_power = c;
     
     all_errors_R = zeros(1, length(usersMatrix));
@@ -103,8 +103,8 @@ function [pos] = calcPosOptimised(usersMatrix, towersMatrix, userIndex, N, nP)
     end
 
     [qMatrix] = calcQ(N, nP);
-    gg = inv(((-gMatrix)' * inv(qMatrix) * (-gMatrix)));
-    pos = gg * (-gMatrix)' * inv(qMatrix) * (hMatrix./2);
+    half = inv(((-gMatrix)' * inv(qMatrix) * (-gMatrix)));
+    pos = half * (-gMatrix)' * inv(qMatrix) * (hMatrix./2);
     
 end
 
