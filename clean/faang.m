@@ -88,35 +88,23 @@ function [detected_x, detected_y] = calcPosRotated(towersMatrixPolar, usersMatri
             else
                 rotate = (theta-pi/6);
                 towers_coord_Y = [0, 0, 433.0127];
-            end
-                %take coords of closest towers in polar system
-                %towers_coord_R = towersMatrixPolar(usersMatrix(i,3:5), 1);
-                %towers_coord_Phi = towersMatrixPolar(usersMatrix(i,3:5), 2);
-                %towers_coord_Phi = towers_coord_Phi + rotate;
-                
+            end                
                 %its fake coord rotated by angle
                 [user_coord_x, user_coord_y] = ToDecartesDot(usersMatrixPolar(i, 1), usersMatrixPolar(i, 2)+rotate);
                 
-                %calc towers in Decartes
-                %towers_coord_X = zeros(3, 1);
-                %towers_coord_Y = zeros(3, 1);
-                
-                
-                %for i = 1:3
-                %    [towers_coord_X(i), towers_coord_Y(i)] = ToDecartesDot(towers_coord_R(i), towers_coord_Phi(i));
-                %end
                 
                 distDiff1 = (sqrt((user_coord_x - towers_coord_X(2))^2 + (user_coord_y - towers_coord_Y(2))^2) - sqrt((user_coord_x - towers_coord_X(1))^2 + (user_coord_y - towers_coord_Y(1))^2));
                 distDiff2 = (sqrt((user_coord_x - towers_coord_X(3))^2 + (user_coord_y - towers_coord_Y(3))^2) - sqrt((user_coord_x - towers_coord_X(1))^2 + (user_coord_y - towers_coord_Y(1))^2));
+                
                 
                 %randn - gaussian distr coefficients w/ disp = 1
                 distDiff1 = distDiff1 + noise_power * randn(1,1);
                 distDiff2 = distDiff2 + noise_power * randn(1,1);
                 
+                
                 [fake_detected_x, fake_detected_y] = calcPosition(distDiff1, distDiff2, towers_coord_X, towers_coord_Y);
                 [fake_r, fake_phi] = ToPolarDot(fake_detected_x, fake_detected_y);
                 [detected_x, detected_y] = ToDecartesDot(fake_r, fake_phi-rotate);
-                
                 
                 distFalsy = sqrt(detected_x^2 + detected_y^2);
                 if distFalsy > maxd
