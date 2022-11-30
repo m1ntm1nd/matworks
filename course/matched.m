@@ -39,8 +39,8 @@ for snr = -5:5
         %plot(t, abs(Acc(1:end, i)), 'r|-');
         %hold on;
     %end
-    plot(t, abs(Acc(1:end, 1)), 'r|-');
-
+    plot(t, abs(Acc(1:end, 1)) / A, 'r|-');
+    hold on;
 
     title("Correlation");
 end
