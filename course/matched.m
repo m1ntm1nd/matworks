@@ -1,4 +1,3 @@
-function fallibility;
 clear all;
 %a = [0 0 0 0 +1 +1 +1 -1 0 0 0 0 +1 +1 +1 -1 0 0 0 0]'; % код Баркера
 a = [+1 +1 +1 -1 0 0 0 0 0 0 0 0]';
@@ -43,7 +42,4 @@ for snr = -5:5
     hold on;
 
     title("Correlation");
-end
-
-
 end
